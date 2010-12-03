@@ -1,0 +1,28 @@
+name:                temporary
+version:             1.0
+cabal-version:       >= 1.6
+synopsis:            Portable temporary file and directory support for Windows and Unix, based on code from Cabal
+description:         The functions for creating temporary files and directories in the base library are quite limited. The unixutils
+                     package contains some good ones, but they aren't portable to Windows.
+                     
+                     This library just repackages the Cabal implementations of its own temporary file and folder functions so that
+                     you can use them without linking against Cabal or depending on it being installed.
+category:            System, Utils
+license:             BSD3
+license-file:        LICENSE
+copyright:           (c) 2003-2006, Isaac Jones
+                     (c) 2005-2009, Duncan Coutts
+author:              Isaac Jones <ijones@syntaxpolice.org>
+                     Duncan Coutts <duncan@haskell.org>
+maintainer:          Max Bolingbroke <batterseapower@hotmail.com>
+homepage:            http://www.github.com/batterseapower/temporary
+build-type:          Simple
+
+Library
+    exposed-modules: System.IO.Temp
+    other-modules:   Distribution.Compat.Exception
+                     Distribution.Compat.TempFile
+    build-depends:   base >= 3 && < 6, filepath >= 1.1 && < 1.2, directory >= 1.0 && < 1.1
+    
+    if !os(windows)
+        build-depends: unix >= 2.4 && < 2.5
