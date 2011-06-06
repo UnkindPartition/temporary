@@ -1,5 +1,6 @@
 module System.IO.Temp (
-    module System.IO.Temp,
+    withSystemTempFile, withSystemTempDirectory,
+    withTempFile, withTempDirectory,
     module Distribution.Compat.TempFile
   ) where
 
@@ -53,7 +54,7 @@ withTempFile :: FilePath -- ^ Temp dir to create the file in
 withTempFile tmpDir template action =
   Exception.bracket
     (openTempFile tmpDir template)
-    (\(name, handle) -> hClose handle >> removeFile name)
+    (\(name, handle) -> hClose handle >> ignoringIOErrors (removeFile name))
     (uncurry action)
 
 -- | Create and use a temporary directory.
@@ -72,4 +73,7 @@ withTempDirectory :: FilePath -- ^ Temp directory to create the directory in
 withTempDirectory targetDir template =
   Exception.bracket
     (createTempDirectory targetDir template)
-    (removeDirectoryRecursive)
+    (ignoringIOErrors . removeDirectoryRecursive)
+
+ignoringIOErrors :: IO () -> IO ()
+ignoringIOErrors ioe = ioe `Exception.catch` (\e -> const (return ()) (e :: IOError))
