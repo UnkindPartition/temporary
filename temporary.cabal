@@ -1,5 +1,5 @@
 name:                temporary
-version:             1.1.2
+version:             1.1.2.1
 cabal-version:       >= 1.6
 synopsis:            Portable temporary file and directory support for Windows and Unix, based on code from Cabal
 description:         The functions for creating temporary files and directories in the base library are quite limited. The unixutils
@@ -25,4 +25,4 @@ Library
     build-depends:   base >= 3 && < 6, filepath >= 1.1 && < 1.3, directory >= 1.0 && < 1.2
     
     if !os(windows)
-        build-depends: unix >= 2.4 && < 2.5
+        build-depends: unix >= 2.4 && < 2.6
