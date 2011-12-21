@@ -22,7 +22,7 @@ Library
     exposed-modules: System.IO.Temp
     other-modules:   Distribution.Compat.Exception
                      Distribution.Compat.TempFile
-    build-depends:   base >= 3 && < 6, filepath >= 1.1 && < 1.3, directory >= 1.0 && < 1.2
+    build-depends:   base >= 3 && < 6, filepath >= 1.1 && < 1.4, directory >= 1.0 && < 1.2
     
     if !os(windows)
         build-depends: unix >= 2.3 && < 2.6
