@@ -25,4 +25,4 @@ Library
     build-depends:   base >= 3 && < 6, filepath >= 1.1 && < 1.4, directory >= 1.0 && < 1.2
     
     if !os(windows)
-        build-depends: unix >= 2.3 && < 2.6
+        build-depends: unix >= 2.3 && < 2.7
