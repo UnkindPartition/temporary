@@ -21,7 +21,7 @@ import Distribution.Compat.TempFile
 
 -- | Create and use a temporary directory in the system standard temporary directory.
 --
--- Behaves exactly the same as 'withTempDirectory', except that the parent temporary directory
+-- Behaves exactly the same as 'withTempFile', except that the parent temporary directory
 -- will be that returned by 'getTemporaryDirectory'.
 withSystemTempFile :: String   -- ^ File name template. See 'openTempFile'.
                    -> (FilePath -> Handle -> IO a) -- ^ Callback that can use the file
