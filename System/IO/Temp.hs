@@ -11,8 +11,9 @@ module System.IO.Temp (
 -- file in the Cabal checkout.
 
 
-import qualified Control.Exception as Exception
+import Control.Monad.Catch as Exception
 
+import Control.Monad.IO.Class
 import System.Directory
 import System.IO
 
@@ -21,21 +22,23 @@ import Distribution.Compat.TempFile
 
 -- | Create and use a temporary directory in the system standard temporary directory.
 --
--- Behaves exactly the same as 'withTempDirectory', except that the parent temporary directory
+-- Behaves exactly the same as 'withTempFile', except that the parent temporary directory
 -- will be that returned by 'getTemporaryDirectory'.
-withSystemTempFile :: String   -- ^ File name template. See 'openTempFile'.
-                   -> (FilePath -> Handle -> IO a) -- ^ Callback that can use the file
-                   -> IO a
-withSystemTempFile template action = getTemporaryDirectory >>= \tmpDir -> withTempFile tmpDir template action
+withSystemTempFile :: (MonadIO m, MonadCatch m) =>
+                      String   -- ^ File name template. See 'openTempFile'.
+                   -> (FilePath -> Handle -> m a) -- ^ Callback that can use the file
+                   -> m a
+withSystemTempFile template action = liftIO getTemporaryDirectory >>= \tmpDir -> withTempFile tmpDir template action
 
 -- | Create and use a temporary directory in the system standard temporary directory.
 --
 -- Behaves exactly the same as 'withTempDirectory', except that the parent temporary directory
 -- will be that returned by 'getTemporaryDirectory'.
-withSystemTempDirectory :: String   -- ^ Directory name template. See 'openTempFile'.
-                        -> (FilePath -> IO a) -- ^ Callback that can use the directory
-                        -> IO a
-withSystemTempDirectory template action = getTemporaryDirectory >>= \tmpDir -> withTempDirectory tmpDir template action
+withSystemTempDirectory :: (MonadIO m, MonadCatch m) =>
+                           String   -- ^ Directory name template. See 'openTempFile'.
+                        -> (FilePath -> m a) -- ^ Callback that can use the directory
+                        -> m a
+withSystemTempDirectory template action = liftIO getTemporaryDirectory >>= \tmpDir -> withTempDirectory tmpDir template action
 
 
 -- | Use a temporary filename that doesn't already exist.
@@ -47,14 +50,15 @@ withSystemTempDirectory template action = getTemporaryDirectory >>= \tmpDir -> w
 --
 -- The @tmpFlie@ will be file in the given directory, e.g.
 -- @src/sdist.342@.
-withTempFile :: FilePath -- ^ Temp dir to create the file in
+withTempFile :: (MonadIO m, MonadCatch m) =>
+                FilePath -- ^ Temp dir to create the file in
              -> String   -- ^ File name template. See 'openTempFile'.
-             -> (FilePath -> Handle -> IO a) -- ^ Callback that can use the file
-             -> IO a
+             -> (FilePath -> Handle -> m a) -- ^ Callback that can use the file
+             -> m a
 withTempFile tmpDir template action =
   Exception.bracket
-    (openTempFile tmpDir template)
-    (\(name, handle) -> hClose handle >> ignoringIOErrors (removeFile name))
+    (liftIO (openTempFile tmpDir template))
+    (\(name, handle) -> liftIO (hClose handle >> ignoringIOErrors (removeFile name)))
     (uncurry action)
 
 -- | Create and use a temporary directory.
@@ -66,14 +70,15 @@ withTempFile tmpDir template action =
 --
 -- The @tmpDir@ will be a new subdirectory of the given directory, e.g.
 -- @src/sdist.342@.
-withTempDirectory :: FilePath -- ^ Temp directory to create the directory in
+withTempDirectory :: (MonadCatch m, MonadIO m) =>
+                     FilePath -- ^ Temp directory to create the directory in
                   -> String   -- ^ Directory name template. See 'openTempFile'.
-                  -> (FilePath -> IO a) -- ^ Callback that can use the directory
-                  -> IO a
+                  -> (FilePath -> m a) -- ^ Callback that can use the directory
+                  -> m a
 withTempDirectory targetDir template =
   Exception.bracket
-    (createTempDirectory targetDir template)
-    (ignoringIOErrors . removeDirectoryRecursive)
+    (liftIO (createTempDirectory targetDir template))
+    (liftIO . ignoringIOErrors . removeDirectoryRecursive)
 
-ignoringIOErrors :: IO () -> IO ()
+ignoringIOErrors :: MonadCatch m => m () -> m ()
 ignoringIOErrors ioe = ioe `Exception.catch` (\e -> const (return ()) (e :: IOError))
