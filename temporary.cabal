@@ -4,7 +4,7 @@ cabal-version:       >= 1.6
 synopsis:            Portable temporary file and directory support for Windows and Unix, based on code from Cabal
 description:         The functions for creating temporary files and directories in the base library are quite limited. The unixutils
                      package contains some good ones, but they aren't portable to Windows.
-                     
+
                      This library just repackages the Cabal implementations of its own temporary file and folder functions so that
                      you can use them without linking against Cabal or depending on it being installed.
 category:            System, Utils
@@ -23,6 +23,6 @@ Library
     other-modules:   Distribution.Compat.Exception
                      Distribution.Compat.TempFile
     build-depends:   base >= 3 && < 6, filepath >= 1.1 && < 1.4, directory >= 1.0 && < 1.3
-    
+
     if !os(windows)
-        build-depends: unix >= 2.3 && < 2.7
+        build-depends: unix >= 2.3 && < 2.8
