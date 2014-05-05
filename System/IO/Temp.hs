@@ -24,7 +24,7 @@ import Distribution.Compat.TempFile
 --
 -- Behaves exactly the same as 'withTempFile', except that the parent temporary directory
 -- will be that returned by 'getTemporaryDirectory'.
-withSystemTempFile :: (MonadIO m, MonadCatch m) =>
+withSystemTempFile :: (MonadIO m, MonadMask m) =>
                       String   -- ^ File name template. See 'openTempFile'.
                    -> (FilePath -> Handle -> m a) -- ^ Callback that can use the file
                    -> m a
@@ -34,7 +34,7 @@ withSystemTempFile template action = liftIO getTemporaryDirectory >>= \tmpDir ->
 --
 -- Behaves exactly the same as 'withTempDirectory', except that the parent temporary directory
 -- will be that returned by 'getTemporaryDirectory'.
-withSystemTempDirectory :: (MonadIO m, MonadCatch m) =>
+withSystemTempDirectory :: (MonadIO m, MonadMask m) =>
                            String   -- ^ Directory name template. See 'openTempFile'.
                         -> (FilePath -> m a) -- ^ Callback that can use the directory
                         -> m a
@@ -50,7 +50,7 @@ withSystemTempDirectory template action = liftIO getTemporaryDirectory >>= \tmpD
 --
 -- The @tmpFlie@ will be file in the given directory, e.g.
 -- @src/sdist.342@.
-withTempFile :: (MonadIO m, MonadCatch m) =>
+withTempFile :: (MonadIO m, MonadMask m) =>
                 FilePath -- ^ Temp dir to create the file in
              -> String   -- ^ File name template. See 'openTempFile'.
              -> (FilePath -> Handle -> m a) -- ^ Callback that can use the file
@@ -70,7 +70,7 @@ withTempFile tmpDir template action =
 --
 -- The @tmpDir@ will be a new subdirectory of the given directory, e.g.
 -- @src/sdist.342@.
-withTempDirectory :: (MonadCatch m, MonadIO m) =>
+withTempDirectory :: (MonadMask m, MonadIO m) =>
                      FilePath -- ^ Temp directory to create the directory in
                   -> String   -- ^ Directory name template. See 'openTempFile'.
                   -> (FilePath -> m a) -- ^ Callback that can use the directory
