@@ -40,6 +40,16 @@ withSystemTempDirectory :: (MonadIO m, MonadMask m) =>
                         -> m a
 withSystemTempDirectory template action = liftIO getTemporaryDirectory >>= \tmpDir -> withTempDirectory tmpDir template action
 
+-- | Create and use a temporary directory in the system standard temporary directory.
+--
+-- Behaves in the same way as 'withSystemTempDirectory', except that the callback
+-- function is provided a canonicalised path.
+withCanonicalizedSystemTempDirectory :: (MonadMask m, MonadIO m)
+    => String            -- ^ Directory name template.
+    -> (FilePath -> m a) -- ^ Callback that can use the canonicalized directory
+    -> m a
+withCanonicalizedSystemTempDirectory template action =
+  withSystemTempDirectory template (\path -> liftIO (canonicalizePath path) >>= action)
 
 -- | Use a temporary filename that doesn't already exist.
 --
@@ -80,5 +90,18 @@ withTempDirectory targetDir template =
     (liftIO (createTempDirectory targetDir template))
     (liftIO . ignoringIOErrors . removeDirectoryRecursive)
 
+-- | Create and use a temporary directory.
+--
+-- Behaves in the same way as 'withTempDirectory', except that the callback
+-- function is provided a canonicalised path.
+withCanonicalizedTempDirectory :: (MonadMask m, MonadIO m)
+    => FilePath          -- ^ Temp directory to create the directory in
+    -> String            -- ^ Directory name template.
+    -> (FilePath -> m a) -- ^ Callback that can use the canonicalized directory
+    -> m a
+withCanonicalizedTempDirectory targetDir template action =
+  withTempDirectory targetDir template (\path -> liftIO (canonicalizePath path) >>= action)
+
 ignoringIOErrors :: MonadCatch m => m () -> m ()
 ignoringIOErrors ioe = ioe `Exception.catch` (\e -> const (return ()) (e :: IOError))
+
