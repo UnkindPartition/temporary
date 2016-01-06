@@ -1,7 +1,8 @@
 module System.IO.Temp (
     withSystemTempFile, withSystemTempDirectory,
     withTempFile, withTempDirectory,
-    module Distribution.Compat.TempFile
+    module Distribution.Compat.TempFile,
+    writeTempFile
   ) where
 
 -- NB: this module was extracted directly from "Distribution/Simple/Utils.hs"
@@ -79,6 +80,22 @@ withTempDirectory targetDir template =
   Exception.bracket
     (liftIO (createTempDirectory targetDir template))
     (liftIO . ignoringIOErrors . removeDirectoryRecursive)
+
+
+-- | Create a unique new file, write a given data string to it, and
+--   close the handle again. The file will not be deleted automatically,
+--   and only the current user will have permission to access the file
+--   (see `openTempFile` for details).
+writeTempFile :: FilePath    -- ^ Directory in which to create the file
+              -> String      -- ^ File name template.
+              -> String      -- ^ Data to store in the file.
+              -> IO FilePath -- ^ Path to the (written and closed) file.
+writeTempFile targetDir template content = Exception.bracket
+    (openTempFile targetDir template)
+    (\(_, handle) -> hClose handle)
+    (\(filePath, handle) -> hPutStr handle content >> return filePath)
+
+
 
 ignoringIOErrors :: MonadCatch m => m () -> m ()
 ignoringIOErrors ioe = ioe `Exception.catch` (\e -> const (return ()) (e :: IOError))
