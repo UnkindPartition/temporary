@@ -48,7 +48,7 @@ withSystemTempDirectory template action = liftIO getTemporaryDirectory >>= \tmpD
 --
 -- > withTempFile "src" "sdist." $ \tmpFile hFile -> do ...
 --
--- The @tmpFlie@ will be file in the given directory, e.g.
+-- The @tmpFile@ will be file in the given directory, e.g.
 -- @src/sdist.342@.
 withTempFile :: (MonadIO m, MonadMask m) =>
                 FilePath -- ^ Temp dir to create the file in
