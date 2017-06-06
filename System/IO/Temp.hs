@@ -1,5 +1,5 @@
 module System.IO.Temp (
-    withSystemTempFile, withSystemTempDirectory,
+    withSystemTempFile, withSystemTempDirectory,withCanonicalizedSystemTempDirectory,
     withTempFile, withTempDirectory,
     module Distribution.Compat.TempFile
   ) where
@@ -40,6 +40,25 @@ withSystemTempDirectory :: (MonadIO m, MonadMask m) =>
                         -> m a
 withSystemTempDirectory template action = liftIO getTemporaryDirectory >>= \tmpDir -> withTempDirectory tmpDir template action
 
+-- | Create and use a temporary directory in the system standard temporary directory.
+--
+-- Behaves in the same way as 'withSystemTempDirectory', except that the callback
+-- function is provided a canonicalised path. This is useful when the environment
+-- variable $TMPDIR is defined and not canonicalized. E.g. if $TMPDIR is set to @.@
+-- then using 'withSystemTempDirectory' will provide a path starting @./@ to the
+-- callback:
+--
+-- >>> withSystemTempDirectory "foo" (\path -> print path)
+-- "./foo3829"
+--
+-- >>> withCanonicalizedSystemTempDirectory "foo" (\path -> print path)
+-- "/home/user/foo3829"
+withCanonicalizedSystemTempDirectory :: (MonadMask m, MonadIO m)
+    => String            -- ^ Directory name template.
+    -> (FilePath -> m a) -- ^ Callback that can use the canonicalized directory
+    -> m a
+withCanonicalizedSystemTempDirectory template action =
+  withSystemTempDirectory template (\path -> liftIO (canonicalizePath path) >>= action)
 
 -- | Use a temporary filename that doesn't already exist.
 --
@@ -82,3 +101,4 @@ withTempDirectory targetDir template =
 
 ignoringIOErrors :: MonadCatch m => m () -> m ()
 ignoringIOErrors ioe = ioe `Exception.catch` (\e -> const (return ()) (e :: IOError))
+
