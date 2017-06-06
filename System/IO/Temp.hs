@@ -2,7 +2,8 @@ module System.IO.Temp (
     withSystemTempFile, withSystemTempDirectory,
     withTempFile, withTempDirectory,
     module Distribution.Compat.TempFile,
-    writeTempFile, writeSystemTempFile
+    writeTempFile, writeSystemTempFile,
+    emptyTempFile, emptySystemTempFile
   ) where
 
 -- NB: this module was extracted directly from "Distribution/Simple/Utils.hs"
@@ -101,6 +102,22 @@ writeSystemTempFile :: String      -- ^ File name template.
                     -> IO FilePath -- ^ Path to the (written and closed) file.
 writeSystemTempFile template content
     = getTemporaryDirectory >>= \tmpDir -> writeTempFile tmpDir template content
+
+-- | Create a unique new empty file. (Equivalent to 'writeTempFile' with empty data string.)
+--   This is useful if the actual content is provided by an external process.
+emptyTempFile :: FilePath    -- ^ Directory in which to create the file
+              -> String      -- ^ File name template.
+              -> IO FilePath -- ^ Path to the (written and closed) file.
+emptyTempFile targetDir template = Exception.bracket
+    (openTempFile targetDir template)
+    (\(_, handle) -> hClose handle)
+    (\(filePath, handle) -> return filePath)
+
+-- | Like 'emptyTempFile', but use the system directory for temporary files.
+emptySystemTempFile :: String      -- ^ File name template.
+                    -> IO FilePath -- ^ Path to the (written and closed) file.
+emptySystemTempFile template
+    = getTemporaryDirectory >>= \tmpDir -> emptyTempFile tmpDir template
 
 
 ignoringIOErrors :: MonadCatch m => m () -> m ()
