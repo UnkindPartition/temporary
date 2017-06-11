@@ -6,10 +6,6 @@ description:         Functions for creating temporary files and directories.
 category:            System, Utils
 license:             BSD3
 license-file:        LICENSE
-copyright:           (c) 2003-2006, Isaac Jones
-                     (c) 2005-2009, Duncan Coutts
-author:              Isaac Jones <ijones@syntaxpolice.org>
-                     Duncan Coutts <duncan@haskell.org>
 maintainer:          Mateusz Kowalczyk <fuuzetsu@fuuzetsu.co.uk>, Roman Cheplyaka <roma@ro-che.info>
 homepage:            http://www.github.com/feuerbach/temporary
 build-type:          Simple
