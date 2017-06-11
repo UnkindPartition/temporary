@@ -41,8 +41,10 @@ test-suite test
     test.hs
   build-depends:
       base >= 4.3 && < 5
-    , unix
     , directory
     , tasty
     , tasty-hunit
     , temporary
+    , filepath
+  if !os(windows)
+      build-depends: unix >= 2.3
