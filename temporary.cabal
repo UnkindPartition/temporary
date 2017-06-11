@@ -39,6 +39,7 @@ test-suite test
     tests
   main-is:
     test.hs
+  ghc-options: -threaded -with-rtsopts=-N2
   build-depends:
       base >= 4.3 && < 5
     , directory
