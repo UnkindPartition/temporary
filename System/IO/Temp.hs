@@ -9,6 +9,9 @@
 -- temporary directory will return canonical absolute paths (see
 -- 'getCanonicalTemporaryDirectory'). The functions use the user-supplied
 -- directory do not canonicalize the returned path.
+--
+-- The action inside 'withTempFile' or 'withTempDirectory' is allowed to
+-- remove the temporary file/directory if it needs to.
 module System.IO.Temp (
     withSystemTempFile, withSystemTempDirectory,
     withTempFile, withTempDirectory,
