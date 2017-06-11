@@ -91,6 +91,8 @@ withTempDirectory targetDir template =
 --   and close the handle again. The file will not be deleted automatically,
 --   and only the current user will have permission to access the file
 --   (see `openTempFile` for details).
+--
+-- @since 1.2.1
 writeTempFile :: FilePath    -- ^ Directory in which to create the file
               -> String      -- ^ File name template.
               -> String      -- ^ Data to store in the file.
@@ -101,6 +103,8 @@ writeTempFile targetDir template content = MC.bracket
     (\(filePath, handle) -> hPutStr handle content >> return filePath)
 
 -- | Like 'writeTempFile', but use the system directory for temporary files.
+--
+-- @since 1.2.1
 writeSystemTempFile :: String      -- ^ File name template.
                     -> String      -- ^ Data to store in the file.
                     -> IO FilePath -- ^ Path to the (written and closed) file.
@@ -109,6 +113,8 @@ writeSystemTempFile template content
 
 -- | Create a unique new empty file. (Equivalent to 'writeTempFile' with empty data string.)
 --   This is useful if the actual content is provided by an external process.
+--
+-- @since 1.2.1
 emptyTempFile :: FilePath    -- ^ Directory in which to create the file
               -> String      -- ^ File name template.
               -> IO FilePath -- ^ Path to the (written and closed) file.
@@ -118,6 +124,8 @@ emptyTempFile targetDir template = MC.bracket
     (\(filePath, _) -> return filePath)
 
 -- | Like 'emptyTempFile', but use the system directory for temporary files.
+--
+-- @since 1.2.1
 emptySystemTempFile :: String      -- ^ File name template.
                     -> IO FilePath -- ^ Path to the (written and closed) file.
 emptySystemTempFile template
