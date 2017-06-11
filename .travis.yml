@@ -140,10 +140,18 @@ install:
       cabal --version
       travis_retry cabal update
 
+      # tasty does not support ghc 7.0 and 7.2
+      case "$GHCVER" in
+        7.0.4|7.2.2)
+          ENABLE_TESTS='' ;;
+        *)
+          ENABLE_TESTS='--enable-tests' ;;
+      esac
+
       # Get the list of packages from the stack.yaml file
       PACKAGES=$(stack --install-ghc query locals | grep '^ *path' | sed 's@^ *path:@@')
 
-      cabal install --only-dependencies --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
+      cabal install --only-dependencies $ENABLE_TESTS --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
       ;;
   esac
   set +ex
@@ -156,7 +164,17 @@ script:
       stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
       ;;
     cabal)
-      cabal install --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
+
+      # tasty does not support ghc 7.0 and 7.2
+      case "$GHCVER" in
+        7.0.4|7.2.2)
+          ENABLE_TESTS='' ;;
+        *)
+          ENABLE_TESTS='--enable-tests' ;;
+      esac
+
+
+      cabal install $ENABLE_TESTS --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
 
       ORIGDIR=$(pwd)
       for dir in $PACKAGES
@@ -169,8 +187,9 @@ script:
         cd dist
         tar zxfv "$SRC_TGZ"
         cd "$PKGVER"
-        cabal configure --enable-tests
+        cabal configure $ENABLE_TESTS
         cabal build
+        [ -n "$ENABLE_TESTS" ] && cabal test
         cd $ORIGDIR
       done
       ;;
