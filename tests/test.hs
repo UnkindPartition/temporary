@@ -9,7 +9,7 @@ import Control.Exception
 import System.Directory
 import System.IO
 import System.FilePath
-import System.Environment
+import System.Environment.Compat
 import Data.Bits
 import Data.List
 import GHC.IO.Handle

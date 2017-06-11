@@ -47,5 +47,6 @@ test-suite test
     , tasty-hunit
     , temporary
     , filepath
+    , base-compat
   if !os(windows)
       build-depends: unix >= 2.3
