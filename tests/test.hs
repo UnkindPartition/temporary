@@ -66,4 +66,13 @@ main = do
 #endif
           return fp
         assertBool "Directory still exists" . not =<< doesDirectoryExist fp
+    , testCase "writeSystemTempFile" $ do
+        fp <- writeSystemTempFile "blah.txt" "hello"
+        str <- readFile fp
+        "hello" @?= str
+        removeFile fp
+    , testCase "emptySystemTempFile" $ do
+        fp <- emptySystemTempFile "empty.txt"
+        assertBool "File doesn't exist" =<< doesFileExist fp
+        removeFile fp
     ]
