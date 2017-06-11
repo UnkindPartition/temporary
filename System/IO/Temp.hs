@@ -1,4 +1,14 @@
 {-# LANGUAGE CPP #-}
+-- | Functions to create temporary files and directories.
+--
+-- Most functions come in two flavours: those that create files/directories
+-- under the system standard temporary directory and those that use the
+-- user-supplied directory.
+--
+-- The functions that create files/directories under the system standard
+-- temporary directory will return canonical absolute paths (see
+-- 'getCanonicalTemporaryDirectory'). The functions use the user-supplied
+-- directory do not canonicalize the returned path.
 module System.IO.Temp (
     withSystemTempFile, withSystemTempDirectory,
     withTempFile, withTempDirectory,
@@ -8,7 +18,9 @@ module System.IO.Temp (
     emptyTempFile, emptySystemTempFile,
     -- * Re-exports from System.IO
     openTempFile,
-    openBinaryTempFile
+    openBinaryTempFile,
+    -- * Auxiliary functions
+    getCanonicalTemporaryDirectory
   ) where
 
 import qualified Control.Monad.Catch as MC
@@ -29,22 +41,22 @@ import qualified System.Posix
 -- | Create and use a temporary file in the system standard temporary directory.
 --
 -- Behaves exactly the same as 'withTempFile', except that the parent temporary directory
--- will be that returned by 'getTemporaryDirectory'.
+-- will be that returned by 'getCanonicalTemporaryDirectory'.
 withSystemTempFile :: (MonadIO m, MC.MonadMask m) =>
                       String   -- ^ File name template. See 'openTempFile'.
                    -> (FilePath -> Handle -> m a) -- ^ Callback that can use the file
                    -> m a
-withSystemTempFile template action = liftIO getTemporaryDirectory >>= \tmpDir -> withTempFile tmpDir template action
+withSystemTempFile template action = liftIO getCanonicalTemporaryDirectory >>= \tmpDir -> withTempFile tmpDir template action
 
 -- | Create and use a temporary directory in the system standard temporary directory.
 --
 -- Behaves exactly the same as 'withTempDirectory', except that the parent temporary directory
--- will be that returned by 'getTemporaryDirectory'.
+-- will be that returned by 'getCanonicalTemporaryDirectory'.
 withSystemTempDirectory :: (MonadIO m, MC.MonadMask m) =>
                            String   -- ^ Directory name template. See 'openTempFile'.
                         -> (FilePath -> m a) -- ^ Callback that can use the directory
                         -> m a
-withSystemTempDirectory template action = liftIO getTemporaryDirectory >>= \tmpDir -> withTempDirectory tmpDir template action
+withSystemTempDirectory template action = liftIO getCanonicalTemporaryDirectory >>= \tmpDir -> withTempDirectory tmpDir template action
 
 
 -- | Use a temporary filename that doesn't already exist.
@@ -109,7 +121,7 @@ writeSystemTempFile :: String      -- ^ File name template.
                     -> String      -- ^ Data to store in the file.
                     -> IO FilePath -- ^ Path to the (written and closed) file.
 writeSystemTempFile template content
-    = getTemporaryDirectory >>= \tmpDir -> writeTempFile tmpDir template content
+    = getCanonicalTemporaryDirectory >>= \tmpDir -> writeTempFile tmpDir template content
 
 -- | Create a unique new empty file. (Equivalent to 'writeTempFile' with empty data string.)
 --   This is useful if the actual content is provided by an external process.
@@ -129,7 +141,7 @@ emptyTempFile targetDir template = MC.bracket
 emptySystemTempFile :: String      -- ^ File name template.
                     -> IO FilePath -- ^ Path to the (written and closed) file.
 emptySystemTempFile template
-    = getTemporaryDirectory >>= \tmpDir -> emptyTempFile tmpDir template
+    = getCanonicalTemporaryDirectory >>= \tmpDir -> emptyTempFile tmpDir template
 
 
 ignoringIOErrors :: MC.MonadCatch m => m () -> m ()
@@ -165,3 +177,15 @@ mkPrivateDir s = createDirectory s
 #else
 mkPrivateDir s = System.Posix.createDirectory s 0o700
 #endif
+
+-- | Return the absolute and canonical path to the system temporary
+-- directory.
+--
+-- >>> setCurrentDirectory "/home/feuerbach/"
+-- >>> setEnv "TMPDIR" "."
+-- >>> getTemporaryDirectory
+-- "."
+-- >>> getCanonicalTemporaryDirectory
+-- "/home/feuerbach"
+getCanonicalTemporaryDirectory :: IO FilePath
+getCanonicalTemporaryDirectory = getTemporaryDirectory >>= canonicalizePath

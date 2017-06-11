@@ -2,9 +2,11 @@
 import Test.Tasty
 import Test.Tasty.HUnit
 
+import Control.Exception
 import System.Directory
 import System.IO
 import System.FilePath
+import System.Environment
 import Data.Bits
 import Data.List
 import GHC.IO.Handle
@@ -18,7 +20,7 @@ main = do
 #ifndef mingw32_HOST_OS
   setFileCreationMask 0
 #endif
-  sys_tmp_dir <- getTemporaryDirectory
+  sys_tmp_dir <- getCanonicalTemporaryDirectory
 
   defaultMain $ testGroup "Tests"
     [ testCase "openNewBinaryFile" $ do
@@ -75,4 +77,8 @@ main = do
         fp <- emptySystemTempFile "empty.txt"
         assertBool "File doesn't exist" =<< doesFileExist fp
         removeFile fp
+    , testCase "withSystemTempFile returns absolute path" $ do
+        bracket_ (setEnv "TMPDIR" ".") (unsetEnv "TMPDIR") $ do
+          withSystemTempFile "temp.txt" $ \fp _ ->
+            assertBool "Not absolute" $ isAbsolute fp
     ]
