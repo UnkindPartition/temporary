@@ -21,7 +21,7 @@
 -- placed between between the name and the extension to yield a unique file
 -- name, e.g.  @name1804289383846930886.ext@.
 --
--- For directories, no extension is recognized, so the number will be simply
+-- For directories, no extension is recognized, so a number will be simply
 -- appended to the end of the template. Moreover, the number will be
 -- smaller, as it is derived from the current process's PID
 -- (but the result is still a unique directory name). So, for instance,
