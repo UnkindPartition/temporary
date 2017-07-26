@@ -12,6 +12,20 @@
 --
 -- The action inside 'withTempFile' or 'withTempDirectory' is allowed to
 -- remove the temporary file/directory if it needs to.
+--
+-- == Templates and file names
+--
+-- The treatment of templates differs somewhat for files vs directories.
+--
+-- For files, the template has form @name.ext@, and a random number will be
+-- placed between between the name and the extension to yield a unique file
+-- name, e.g.  @name1804289383846930886.ext@.
+--
+-- For directories, no extension is recognized, so the number will be simply
+-- appended to the end of the template. Moreover, the number will be
+-- smaller, as it is derived from the current process's PID
+-- (but the result is still a unique directory name). So, for instance,
+-- the directory template @dir@ may result in a directory named @dir30112@.
 module System.IO.Temp (
     withSystemTempFile, withSystemTempDirectory,
     withTempFile, withTempDirectory,
