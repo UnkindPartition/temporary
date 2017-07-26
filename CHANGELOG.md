@@ -1,3 +1,7 @@
+## 1.2.1.1
+
+* Improve the docs
+
 ## 1.2.1
 
 * Limit support to GHC 7.0+
