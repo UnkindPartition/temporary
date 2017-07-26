@@ -55,12 +55,14 @@ import System.Directory       ( createDirectory )
 import qualified System.Posix
 #endif
 
--- | Create and use a temporary file in the system standard temporary directory.
+-- | Create, open, and use a temporary file in the system standard temporary directory.
+--
+-- The temp file is deleted after use.
 --
 -- Behaves exactly the same as 'withTempFile', except that the parent temporary directory
 -- will be that returned by 'getCanonicalTemporaryDirectory'.
 withSystemTempFile :: (MonadIO m, MC.MonadMask m) =>
-                      String   -- ^ File name template. See 'openTempFile'.
+                      String   -- ^ File name template
                    -> (FilePath -> Handle -> m a) -- ^ Callback that can use the file
                    -> m a
 withSystemTempFile template action = liftIO getCanonicalTemporaryDirectory >>= \tmpDir -> withTempFile tmpDir template action
@@ -70,24 +72,18 @@ withSystemTempFile template action = liftIO getCanonicalTemporaryDirectory >>= \
 -- Behaves exactly the same as 'withTempDirectory', except that the parent temporary directory
 -- will be that returned by 'getCanonicalTemporaryDirectory'.
 withSystemTempDirectory :: (MonadIO m, MC.MonadMask m) =>
-                           String   -- ^ Directory name template. See 'openTempFile'.
+                           String   -- ^ Directory name template
                         -> (FilePath -> m a) -- ^ Callback that can use the directory
                         -> m a
 withSystemTempDirectory template action = liftIO getCanonicalTemporaryDirectory >>= \tmpDir -> withTempDirectory tmpDir template action
 
 
--- | Use a temporary filename that doesn't already exist.
+-- | Create, open, and use a temporary file in the given directory.
 --
--- Creates a new temporary file inside the given directory, making use of the
--- template. The temp file is deleted after use. For example:
---
--- > withTempFile "src" "sdist." $ \tmpFile hFile -> do ...
---
--- The @tmpFile@ will be file in the given directory, e.g.
--- @src/sdist.342@.
+-- The temp file is deleted after use.
 withTempFile :: (MonadIO m, MC.MonadMask m) =>
-                FilePath -- ^ Temp dir to create the file in
-             -> String   -- ^ File name template. See 'openTempFile'.
+                FilePath -- ^ Parent directory to create the file in
+             -> String   -- ^ File name template
              -> (FilePath -> Handle -> m a) -- ^ Callback that can use the file
              -> m a
 withTempFile tmpDir template action =
@@ -96,18 +92,12 @@ withTempFile tmpDir template action =
     (\(name, handle) -> liftIO (hClose handle >> ignoringIOErrors (removeFile name)))
     (uncurry action)
 
--- | Create and use a temporary directory.
+-- | Create and use a temporary directory inside the given directory.
 --
--- Creates a new temporary directory inside the given directory, making use
--- of the template. The temp directory is deleted after use. For example:
---
--- > withTempDirectory "src" "sdist." $ \tmpDir -> do ...
---
--- The @tmpDir@ will be a new subdirectory of the given directory, e.g.
--- @src/sdist.342@.
+-- The directory is deleted after use.
 withTempDirectory :: (MC.MonadMask m, MonadIO m) =>
-                     FilePath -- ^ Temp directory to create the directory in
-                  -> String   -- ^ Directory name template. See 'openTempFile'.
+                     FilePath -- ^ Parent directory to create the directory in
+                  -> String   -- ^ Directory name template
                   -> (FilePath -> m a) -- ^ Callback that can use the directory
                   -> m a
 withTempDirectory targetDir template =
@@ -115,17 +105,15 @@ withTempDirectory targetDir template =
     (liftIO (createTempDirectory targetDir template))
     (liftIO . ignoringIOErrors . removeDirectoryRecursive)
 
-
 -- | Create a unique new file, write (text mode) a given data string to it,
 --   and close the handle again. The file will not be deleted automatically,
---   and only the current user will have permission to access the file
---   (see `openTempFile` for details).
+--   and only the current user will have permission to access the file.
 --
 -- @since 1.2.1
-writeTempFile :: FilePath    -- ^ Directory in which to create the file
-              -> String      -- ^ File name template.
-              -> String      -- ^ Data to store in the file.
-              -> IO FilePath -- ^ Path to the (written and closed) file.
+writeTempFile :: FilePath    -- ^ Parent directory to create the file in
+              -> String      -- ^ File name template
+              -> String      -- ^ Data to store in the file
+              -> IO FilePath -- ^ Path to the (written and closed) file
 writeTempFile targetDir template content = MC.bracket
     (openTempFile targetDir template)
     (\(_, handle) -> hClose handle)
@@ -134,9 +122,9 @@ writeTempFile targetDir template content = MC.bracket
 -- | Like 'writeTempFile', but use the system directory for temporary files.
 --
 -- @since 1.2.1
-writeSystemTempFile :: String      -- ^ File name template.
-                    -> String      -- ^ Data to store in the file.
-                    -> IO FilePath -- ^ Path to the (written and closed) file.
+writeSystemTempFile :: String      -- ^ File name template
+                    -> String      -- ^ Data to store in the file
+                    -> IO FilePath -- ^ Path to the (written and closed) file
 writeSystemTempFile template content
     = getCanonicalTemporaryDirectory >>= \tmpDir -> writeTempFile tmpDir template content
 
@@ -144,9 +132,9 @@ writeSystemTempFile template content
 --   This is useful if the actual content is provided by an external process.
 --
 -- @since 1.2.1
-emptyTempFile :: FilePath    -- ^ Directory in which to create the file
-              -> String      -- ^ File name template.
-              -> IO FilePath -- ^ Path to the (written and closed) file.
+emptyTempFile :: FilePath    -- ^ Parent directory to create the file in
+              -> String      -- ^ File name template
+              -> IO FilePath -- ^ Path to the (written and closed) file
 emptyTempFile targetDir template = MC.bracket
     (openTempFile targetDir template)
     (\(_, handle) -> hClose handle)
@@ -155,8 +143,8 @@ emptyTempFile targetDir template = MC.bracket
 -- | Like 'emptyTempFile', but use the system directory for temporary files.
 --
 -- @since 1.2.1
-emptySystemTempFile :: String      -- ^ File name template.
-                    -> IO FilePath -- ^ Path to the (written and closed) file.
+emptySystemTempFile :: String      -- ^ File name template
+                    -> IO FilePath -- ^ Path to the (written and closed) file
 emptySystemTempFile template
     = getCanonicalTemporaryDirectory >>= \tmpDir -> emptyTempFile tmpDir template
 
@@ -171,9 +159,9 @@ ignoringIOErrors ioe = ioe `MC.catch` (\e -> const (return ()) (e :: IOError))
 openNewBinaryFile :: FilePath -> String -> IO (FilePath, Handle)
 openNewBinaryFile = openBinaryTempFileWithDefaultPermissions
 
--- | Create a temporary directory. See 'withTempDirectory'.
+-- | Create a temporary directory.
 createTempDirectory
-  :: FilePath -- ^ Temp directory to create the directory in
+  :: FilePath -- ^ Parent directory to create the directory in
   -> String -- ^ Directory name template
   -> IO FilePath
 createTempDirectory dir template = do
