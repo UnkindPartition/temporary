@@ -20,7 +20,7 @@ Library
       Haskell2010
     exposed-modules: System.IO.Temp
     build-depends:   base >= 3 && < 10, filepath >= 1.1, directory >= 1.0,
-                     transformers >= 0.2.0.0, exceptions >= 0.6
+                     transformers >= 0.2.0.0, exceptions >= 0.6, random >= 1.1
                      -- note: the transformers dependency is needed for MonadIO
                      -- on older GHCs; on newer ones, it is included in base.
     ghc-options:     -Wall

@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP, ScopedTypeVariables #-}
 -- | Functions to create temporary files and directories.
 --
 -- Most functions come in two flavours: those that create files/directories
@@ -21,11 +21,12 @@
 -- placed between between the name and the extension to yield a unique file
 -- name, e.g.  @name1804289383846930886.ext@.
 --
--- For directories, no extension is recognized, so a number will be simply
--- appended to the end of the template. Moreover, the number will be
--- smaller, as it is derived from the current process's PID
--- (but the result is still a unique directory name). So, for instance,
--- the directory template @dir@ may result in a directory named @dir30112@.
+-- For directories, no extension is recognized.
+-- A random hexadecimal string (whose length depends on the system's word
+-- size) is appended to the end of the template.
+-- For instance,
+-- the directory template @dir@ may result in a directory named
+-- @dir-e4bd89e5d00acdee@.
 module System.IO.Temp (
     withSystemTempFile, withSystemTempDirectory,
     withTempFile, withTempDirectory,
@@ -43,17 +44,23 @@ module System.IO.Temp (
 import qualified Control.Monad.Catch as MC
 
 import Control.Monad.IO.Class
+import Data.Bits -- no import list: we use different functions
+                 -- depending on the base version
+#if !MIN_VERSION_base(4,8,0)
+import Data.Word (Word)
+#endif
 import System.Directory
 import System.IO (Handle, hClose, openTempFile, openBinaryTempFile,
        openBinaryTempFileWithDefaultPermissions, hPutStr)
 import System.IO.Error        (isAlreadyExistsError)
-import System.Posix.Internals (c_getpid)
 import System.FilePath        ((</>))
+import System.Random
 #ifdef mingw32_HOST_OS
 import System.Directory       ( createDirectory )
 #else
 import qualified System.Posix
 #endif
+import Text.Printf
 
 -- | Create, open, and use a temporary file in the system standard temporary directory.
 --
@@ -164,17 +171,25 @@ createTempDirectory
   :: FilePath -- ^ Parent directory to create the directory in
   -> String -- ^ Directory name template
   -> IO FilePath
-createTempDirectory dir template = do
-  pid <- c_getpid
-  findTempName pid
+createTempDirectory dir template = findTempName
   where
-    findTempName x = do
-      let dirpath = dir </> template ++ show x
+    findTempName = do
+      x :: Word <- randomIO
+      let dirpath = dir </> template ++ printf "-%.*x" (wordSize `div` 4) x
       r <- MC.try $ mkPrivateDir dirpath
       case r of
         Right _ -> return dirpath
-        Left  e | isAlreadyExistsError e -> findTempName (x+1)
+        Left  e | isAlreadyExistsError e -> findTempName
                 | otherwise              -> ioError e
+
+-- | Word size in bits
+wordSize :: Int
+wordSize =
+#if MIN_VERSION_base(4,7,0)
+ finiteBitSize (undefined :: Word)
+#else
+  bitSize (undefined :: Word)
+#endif
 
 mkPrivateDir :: String -> IO ()
 #ifdef mingw32_HOST_OS
