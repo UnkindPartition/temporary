@@ -43,6 +43,21 @@ main = do
         fileMode status .&. 0o777  @?= 0o666 
 #endif
         removeFile fp
+    , testCase "mkTempFileName" $ do
+        fp <- mkTempFileName sys_tmp_dir "test.txt"
+        fh <- openFile fp WriteMode
+        let fn = takeFileName fp
+        assertBool ("Does not match template: " ++ fn) $
+          ("test" `isPrefixOf` fn) && (".txt" `isSuffixOf` fn)
+        assertBool (fp ++ " is not in the right directory " ++ sys_tmp_dir) $
+          takeDirectory fp `equalFilePath` sys_tmp_dir
+        hClose fh
+        assertBool "File does not exist" =<< doesFileExist fp
+#ifndef mingw32_HOST_OS
+        status <- getFileStatus fp
+        fileMode status .&. 0o777  @?= 0o666 
+#endif
+        removeFile fp
     , testCase "withSystemTempFile" $ do
         (fp, fh) <- withSystemTempFile "test.txt" $ \fp fh -> do
           let fn = takeFileName fp

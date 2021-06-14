@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, ScopedTypeVariables, LambdaCase #-}
 -- | Functions to create temporary files and directories.
 --
 -- Most functions come in two flavours: those that create files/directories
@@ -37,6 +37,7 @@ module System.IO.Temp (
     createTempDirectory,
     writeTempFile, writeSystemTempFile,
     emptyTempFile, emptySystemTempFile,
+    mkTempFileName,
     -- * Re-exports from System.IO
     openTempFile,
     openBinaryTempFile,
@@ -52,16 +53,20 @@ import Data.Bits -- no import list: we use different functions
 #if !MIN_VERSION_base(4,8,0)
 import Data.Word (Word)
 #endif
+import GHC.Base
+import GHC.IO                 ( unsafePerformIO )
+import GHC.IORef
 import System.Directory
 import System.IO (Handle, hClose, openTempFile, openBinaryTempFile,
        openBinaryTempFileWithDefaultPermissions, hPutStr)
 import System.IO.Error        (isAlreadyExistsError)
-import System.FilePath        ((</>))
+import System.FilePath        ((</>), splitExtension, isPathSeparator)
 import System.Random
 #ifdef mingw32_HOST_OS
-import System.Directory       ( createDirectory )
+import System.Win32.Process   ( getCurrentProcessId )
 #else
 import qualified System.Posix
+import System.Posix.Process   ( getProcessID )
 #endif
 import Text.Printf
 
@@ -212,3 +217,49 @@ mkPrivateDir s = System.Posix.createDirectory s 0o700
 -- "/home/feuerbach"
 getCanonicalTemporaryDirectory :: IO FilePath
 getCanonicalTemporaryDirectory = getTemporaryDirectory >>= canonicalizePath
+
+
+-- | Make a temporary file or directory name in the given directory, similar to unix 'mktemp'.
+-- This does not create a file.
+--
+-- Note that this might be subject to race conditions. Only use this on secure directories.
+mkTempFileName :: FilePath   -- ^ directory in which to test for available random filenames
+               -> String     -- ^ File name template. If the template is \"foo.ext\" then
+                             -- the created file will be \"fooXXX.ext\" where XXX is some
+                             -- random number. Note that this should not contain any path
+                             -- separator characters.
+               -> IO FilePath
+mkTempFileName tmp_dir template
+  | any isPathSeparator template
+  = failIO $ "mkTempFileName: Template string must not contain path separator characters: " ++ template
+  | otherwise = find' 0 (splitExtension template)
+ where
+  find' :: Int -> (String, String) -> IO FilePath
+  find' c (prefix, suffix)
+    | c >= max_tries = failIO "mkTempFileName: too many attempts of finding unique filename" 
+    | otherwise = do
+        rs <- rand_string
+        let filename = prefix ++ rs ++ suffix
+            filepath = tmp_dir </> filename
+        doesPathExist filepath >>= \case
+          False -> pure filepath
+          True -> find' (c + 1) (prefix, suffix)
+
+  max_tries = 10
+
+-- build large digit-alike number
+rand_string :: IO String
+rand_string = do
+#ifdef mingw32_HOST_OS
+  r1 <- getCurrentProcessId
+#else
+  r1 <- getProcessID
+#endif
+  (r2, _) <- atomicModifyIORef'_ tempCounter (+1)
+  return $ show r1 ++ "-" ++ show r2
+
+
+tempCounter :: IORef Int
+tempCounter = unsafePerformIO $ newIORef 0
+{-# NOINLINE tempCounter #-}
+

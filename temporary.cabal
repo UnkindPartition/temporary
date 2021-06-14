@@ -25,7 +25,9 @@ Library
                      -- on older GHCs; on newer ones, it is included in base.
     ghc-options:     -Wall
     
-    if !os(windows)
+    if os(windows)
+        build-depends: Win32 >= 2.4.0.0
+    else
         build-depends: unix >= 2.3
 
 test-suite test
