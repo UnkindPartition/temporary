@@ -1,3 +1,7 @@
+## Unreleased
+
+* Add new function: `createTempFileName`.
+
 ## 1.3
 
 * Generated directory names are now based on random hex strings rather than PIDs.
