@@ -37,6 +37,7 @@ module System.IO.Temp (
     createTempDirectory,
     writeTempFile, writeSystemTempFile,
     emptyTempFile, emptySystemTempFile,
+    createTempFileName,
     -- * Re-exports from System.IO
     openTempFile,
     openBinaryTempFile,
@@ -184,6 +185,22 @@ createTempDirectory dir template = findTempName
         Right _ -> return dirpath
         Left  e | isAlreadyExistsError e -> findTempName
                 | otherwise              -> ioError e
+
+-- | Get a temporary file name, without creating a file.
+--
+-- This may be useful if you have some process wait for a file creation to
+-- happen.
+--
+-- This is merely a small wrapper over 'createTempDirectory'. If you care about
+-- cleaning up any created resources, you're encouraged to instead make use of
+-- 'withTempDirectory' or 'createTempDirectory' directly.
+createTempFileName
+  :: FilePath -- ^ Parent directory to create the temporary directory in.
+  -> String -- ^ Directory name template.
+  -> IO FilePath
+createTempFileName dir template = do
+  tempDir <- createTempDirectory dir template
+  return (tempDir </> "temp_file")
 
 -- | Word size in bits
 wordSize :: Int

@@ -40,7 +40,7 @@ main = do
         assertBool "File does not exist" =<< doesFileExist fp
 #ifndef mingw32_HOST_OS
         status <- getFileStatus fp
-        fileMode status .&. 0o777  @?= 0o666 
+        fileMode status .&. 0o777  @?= 0o666
 #endif
         removeFile fp
     , testCase "withSystemTempFile" $ do
@@ -108,4 +108,30 @@ main = do
         readMVar mvar2
         -- check whether the directory was successfully removed
         assertBool "Directory was not removed" . not =<< doesDirectoryExist dir
+    , testCase "createTempFileName" $ do
+        let template = "testdir"
+            -- createTempFileName with some tests
+            checkedCreateTempFileName = do
+              fp <- createTempFileName sys_tmp_dir template
+              let directParent = takeDirectory fp
+              assertBool ("Parent directory " ++ directParent ++ " does not match template: " ++ template) $
+                template `isPrefixOf` takeBaseName directParent
+              assertBool "Parent directory does not exist" =<< doesDirectoryExist directParent
+              assertBool "File already exists" . not =<< doesFileExist fp
+              return fp
+
+            -- Helper for the test just to ensure we don't leave garbage lying
+            -- around when we run/abort tests.
+            withTempFileName = bracket checkedCreateTempFileName
+              (removeDirectoryRecursive . takeDirectory)
+
+        -- Now make some filenames, check that they are all different. Note that
+        -- we run the tests we defined above on each one. We don't want to plug
+        -- a huge number here to not hit any file resource limits.
+        let checkDifferent 0 fns = assertBool "Got duplicate temporary filenames"
+              . all ((== 1) . length) . group $ sort fns
+            checkDifferent n fns = withTempFileName $ \fp ->
+                checkDifferent (n - 1) (fp : fns)
+
+        checkDifferent (50 :: Int) []
     ]
