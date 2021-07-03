@@ -38,6 +38,7 @@ module System.IO.Temp (
     writeTempFile, writeSystemTempFile,
     emptyTempFile, emptySystemTempFile,
     createTempFileName,
+    withTempFileName,
     -- * Re-exports from System.IO
     openTempFile,
     openBinaryTempFile,
@@ -186,21 +187,53 @@ createTempDirectory dir template = findTempName
         Left  e | isAlreadyExistsError e -> findTempName
                 | otherwise              -> ioError e
 
--- | Get a temporary file name, without creating a file.
+-- | Get a temporary file name without creating a file.
 --
--- This may be useful if you have some process wait for a file creation to
--- happen.
+-- If you merely want to create a temporary file or directory,
+-- please use one of the functions above, such as 'withTempFile' or
+-- 'withTempDirectory'.
 --
--- This is merely a small wrapper over 'createTempDirectory'. If you care about
--- cleaning up any created resources, you're encouraged to instead make use of
--- 'withTempDirectory' or 'createTempDirectory' directly.
+-- This function can be useful when:
+--
+-- * you want to create a file of a special type, like a FIFO or a socket.
+-- * you have a process/function that accepts a filename and then waits for it
+--   to appear to do something, so you need to know the file name /before/ the
+--   file is created.
+-- * you need a target for an atomic rename operation.
+--
+-- This function works by creating a temporary directory with
+-- 'createTempDirectory' and then returning a fixed file name within that
+-- directory. On UNIX, the directory is created with the mode 0700, which
+-- ensures that a different user cannot make us overwrite an existing file.
+-- This makes this function more secure than merely generating a random file
+-- name. See the discussions at
+-- <https://github.com/UnkindPartition/temporary/issues/10> and
+-- <https://github.com/UnkindPartition/temporary/pull/11>.
+--
+-- See also 'withTempFileName'.
 createTempFileName
-  :: FilePath -- ^ Parent directory to create the temporary directory in.
-  -> String -- ^ Directory name template.
+  :: FilePath -- ^ Parent directory to create the temporary directory in
+  -> String -- ^ Directory name template
   -> IO FilePath
 createTempFileName dir template = do
   tempDir <- createTempDirectory dir template
   return (tempDir </> "temp_file")
+
+-- | Similarly to 'createTempFileName', this function creates a temporary
+-- directory and constructs a fixed file name within it. The supplied callback is
+-- called with the generated file name, and after it returns, the directory is
+-- removed with all its contents.
+--
+-- Please read the documentation for 'createTempFileName' carefully and make
+-- sure this is the right function for your needs before using it.
+withTempFileName
+  :: (MonadIO m, MC.MonadMask m)
+  => FilePath -- ^ Parent directory to create the temporary directory in
+  -> String -- ^ Directory name template
+  -> (FilePath -> m a)
+  -> m a
+withTempFileName dir template k = withTempDirectory dir template $ \tempDir ->
+  k (tempDir </> "temp_file")
 
 -- | Word size in bits
 wordSize :: Int
