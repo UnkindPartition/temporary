@@ -15,6 +15,11 @@ source-repository head
   type:     git
   location: git://github.com/feuerbach/temporary.git
 
+flag smp
+  description: Use flags that depend on GHC supporting a multicore runtime (tests only)
+  manual: True
+  default: True
+
 Library
     default-language:
       Haskell2010
@@ -37,7 +42,10 @@ test-suite test
     tests
   main-is:
     test.hs
-  ghc-options: -threaded -with-rtsopts=-N2
+  if flag(smp)
+    ghc-options: -threaded -with-rtsopts=-N2
+  else
+    ghc-options: -threaded
   build-depends:
       base >= 4.3 && < 5
     , directory
